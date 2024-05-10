@@ -1,8 +1,11 @@
+import React, { useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
-import prettier from 'prettier';
-import React, { useState } from 'react';
 import * as ts from 'typescript';
 import { useTheme } from '../context/ThemeContext';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import Container from '@mui/material/Container';
+import Box from '@mui/material/Box';
 
 const initialCode = `const b = 'b';
 const a = 'a';
@@ -15,27 +18,25 @@ console.log(\`\${b}\${a}\${Number(b)}\${a}\`);`;
 const Playground: React.FC = () => {
   const { theme } = useTheme();
   const [code, setCode] = useState(initialCode);
-  const [formattedCode, setFormattedCode] = useState(code);
   const [transpiledJs, setTranspiledJs] = useState('');
   const [output, setOutput] = useState('');
+  const editorRef = useRef<any>(null);
+
+  const handleEditorDidMount = (editor: any) => {
+    editorRef.current = editor;
+  };
 
   const handleEditorChange = (value: string | undefined) => {
     setCode(value || '');
   };
 
-  const formatCode = async () => {
-    try {
-      const formatted = await prettier.format(code, {
-        parser: "typescript",  // Uses the built-in TypeScript parser
-        semi: true,            // Use semicolons at the ends of statements
-        singleQuote: true      // Use single quotes instead of double
-      });
-      setFormattedCode(formatted);
-    } catch (error) {
-      console.error("Error formatting code:", error);
+  const formatCode = () => {
+    if (!editorRef.current) return;
+    const model = editorRef.current.getModel();
+    if (model) {
+      editorRef.current.getAction('editor.action.formatDocument').run();
     }
   };
-  
 
   const runCode = () => {
     try {
@@ -74,34 +75,44 @@ const Playground: React.FC = () => {
   };
 
   return (
-    <div>
-      <h2>TypeScript Code Editor</h2>
+    <Container maxWidth="md">
+      <br></br>
+      <Typography variant="h4" gutterBottom>
+        TypeScript Code Editor
+      </Typography>
+      <Box sx={{ my: 2 }}>
+        <Editor
+          height="40vh"
+          defaultLanguage="typescript"
+          defaultValue={code}
+          onChange={handleEditorChange}
+          theme={editorTheme}
+          onMount={handleEditorDidMount}
+        />
+        <Button variant="contained" color="primary" onClick={formatCode} sx={{ m: 1 }}>
+          Format Code
+        </Button>
+        <Button variant="contained" color="secondary" onClick={runCode} sx={{ m: 1 }}>
+          Run Code
+        </Button>
+      </Box>
+      <Typography variant="h6" gutterBottom>
+        Compiled JavaScript
+      </Typography>
       <Editor
         height="40vh"
-        defaultLanguage="typescript"
-        defaultValue={code}
-        onChange={handleEditorChange}
-        theme={editorTheme}
-      />
-      <button onClick={formatCode}>Format Code</button>
-      <button onClick={runCode}>Run Code</button>
-      <h3>Formatted TypeScript</h3>
-      <Editor
-        height="40vh"
-        value={formattedCode}
-        theme={editorTheme}
-        options={{ readOnly: true }}
-      />
-      <h3>Compiled JavaScript</h3>
-      <Editor
-        height="40vh"
+        defaultLanguage="javascript"
         value={transpiledJs}
         theme={editorTheme}
         options={{ readOnly: true }}
       />
-      <h3>Console Output</h3>
-      <div style={outputStyle}>{output}</div>
-    </div>
+      <Typography variant="h6" gutterBottom>
+        Console Output
+      </Typography>
+      <Box sx={{ ...outputStyle }}>
+        {output}
+      </Box>
+    </Container>
   );
 }
 
